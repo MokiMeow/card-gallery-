@@ -1,13 +1,33 @@
 "use client"
 
-import { Suspense } from "react"
-import { Canvas } from "@react-three/fiber"
+import { Suspense, useEffect } from "react"
+import { Canvas, useThree } from "@react-three/fiber"
 import { OrbitControls } from "@react-three/drei"
 import { ArrowUpRight, Orbit } from "lucide-react"
 import StarfieldBackground from "@/components/starfield-background"
 import CardGalaxy from "@/components/card-galaxy"
 import CardModal from "@/components/card-modal"
 import { CardProvider } from "@/components/card-context"
+
+function InitialSceneWarmup() {
+  const invalidate = useThree((state) => state.invalidate)
+
+  useEffect(() => {
+    let remainingFrames = 8
+    let animationFrame = 0
+
+    const renderSettledFrame = () => {
+      invalidate()
+      remainingFrames -= 1
+      if (remainingFrames > 0) animationFrame = requestAnimationFrame(renderSettledFrame)
+    }
+
+    animationFrame = requestAnimationFrame(renderSettledFrame)
+    return () => cancelAnimationFrame(animationFrame)
+  }, [invalidate])
+
+  return null
+}
 
 function GalleryExperience() {
   return (
@@ -22,6 +42,7 @@ function GalleryExperience() {
       >
         <color attach="background" args={["#000000"]} />
         <Suspense fallback={null}>
+          <InitialSceneWarmup />
           <StarfieldBackground />
           <CardGalaxy />
           <OrbitControls
