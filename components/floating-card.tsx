@@ -1,8 +1,8 @@
 "use client"
 
-import { memo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react"
+import { memo, useRef, useState, type KeyboardEvent } from "react"
 import { Html } from "@react-three/drei"
-import { useFrame } from "@react-three/fiber"
+import { useFrame, type ThreeEvent } from "@react-three/fiber"
 import type * as THREE from "three"
 import type { Card } from "./card-context"
 import { useCard } from "./card-context"
@@ -30,7 +30,6 @@ function FloatingCard({ card, position, distanceFactor = 10, compact = false }: 
   const groupRef = useRef<THREE.Group>(null)
   const [hovered, setHovered] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
-  const pointerStart = useRef({ x: 0, y: 0 })
   const { setSelectedCard } = useCard()
 
   // Preserve the original globe behavior. Facing each group toward the camera
@@ -40,24 +39,17 @@ function FloatingCard({ card, position, distanceFactor = 10, compact = false }: 
   })
 
   const openCard = () => setSelectedCard(card)
-  const handleClick = (event: MouseEvent<HTMLDivElement>) => {
-    event.preventDefault()
+  const handleCardClick = (event: ThreeEvent<MouseEvent>) => {
     event.stopPropagation()
     openCard()
   }
-  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+  const handlePointerOver = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation()
-    pointerStart.current = { x: event.clientX, y: event.clientY }
+    setHovered(true)
   }
-  const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
+  const handlePointerOut = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation()
-    if (event.pointerType === "mouse") return
-
-    const moved = Math.hypot(
-      event.clientX - pointerStart.current.x,
-      event.clientY - pointerStart.current.y,
-    )
-    if (moved <= 12) openCard()
+    setHovered(false)
   }
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Enter" || event.key === " ") {
@@ -68,14 +60,21 @@ function FloatingCard({ card, position, distanceFactor = 10, compact = false }: 
 
   return (
     <group ref={groupRef} position={[position.x, position.y, position.z]}>
+      <mesh
+        onClick={handleCardClick}
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
+      >
+        <planeGeometry args={[4.4, 4.4]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
       <Html
         transform
         distanceFactor={distanceFactor}
         zIndexRange={[100, 0]}
         position={[0, 0, 0.01]}
         style={{
-          pointerEvents: "auto",
-          cursor: "pointer",
+          pointerEvents: "none",
           transform: hovered ? "scale(1.055)" : "scale(1)",
           transition: "transform 160ms cubic-bezier(0.22, 1, 0.36, 1)",
           willChange: hovered ? "transform" : "auto",
@@ -85,12 +84,7 @@ function FloatingCard({ card, position, distanceFactor = 10, compact = false }: 
           role="button"
           tabIndex={0}
           aria-label={`Open ${card.title}`}
-          onClick={handleClick}
-          onPointerDown={handlePointerDown}
-          onPointerUp={handlePointerUp}
           onKeyDown={handleKeyDown}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
           onFocus={() => setHovered(true)}
           onBlur={() => setHovered(false)}
           className={`${compact ? "w-36 p-1.5" : "w-40 p-2"} select-none overflow-hidden rounded-lg bg-[#1F2121] shadow-2xl outline-none focus-visible:ring-2 focus-visible:ring-[#31b8c6] focus-visible:ring-offset-2 focus-visible:ring-offset-black`}

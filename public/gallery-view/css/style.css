@@ -394,8 +394,25 @@ body {
     max-height: min(46vh, var(--image-natural-height, 46vh));
   }
   .back-btn {
-    top: max(12px, env(safe-area-inset-top));
-    left: max(12px, env(safe-area-inset-left));
+    top: max(14px, env(safe-area-inset-top));
+    left: max(14px, env(safe-area-inset-left));
+    min-height: 44px;
+    width: 44px;
+    padding: 5px;
+    border-color: rgba(255, 255, 255, 0.18);
+    background: rgba(5, 7, 8, 0.72);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .back-icon {
+    width: 32px;
+    height: 32px;
+    border: 0;
+    background: transparent;
+  }
+  .back-label {
+    display: none;
   }
   .detail-inner {
     margin-top: -28px;

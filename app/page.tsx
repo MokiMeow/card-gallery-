@@ -4,7 +4,7 @@ import { Suspense, useEffect } from "react"
 import { Canvas, useThree } from "@react-three/fiber"
 import { OrbitControls } from "@react-three/drei"
 import { ArrowUpRight, Orbit } from "lucide-react"
-import { PerspectiveCamera } from "three"
+import { PerspectiveCamera, TOUCH } from "three"
 import StarfieldBackground from "@/components/starfield-background"
 import CardGalaxy from "@/components/card-galaxy"
 import CardModal from "@/components/card-modal"
@@ -53,14 +53,14 @@ function ResponsiveSceneCamera() {
 
 function GalleryExperience() {
   return (
-    <div className="relative h-[100dvh] w-full overflow-hidden bg-black">
+    <div className="relative h-[100dvh] w-full touch-none overflow-hidden bg-black">
       <Canvas
         camera={{ position: [0, 0, 38], fov: 60, near: 0.05, far: 240 }}
         dpr={[1, 1.5]}
         frameloop="demand"
         performance={{ min: 0.5 }}
         gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
-        className="absolute inset-0 z-10"
+        className="absolute inset-0 z-10 touch-none"
       >
         <color attach="background" args={["#000000"]} />
         <Suspense fallback={null}>
@@ -74,12 +74,13 @@ function GalleryExperience() {
             enableZoom
             enableRotate
             minDistance={5}
-            maxDistance={64}
+            maxDistance={90}
             rotateSpeed={0.5}
             zoomSpeed={1.1}
             panSpeed={0.8}
             enableDamping
             dampingFactor={0.075}
+            touches={{ ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_ROTATE }}
             target={[0, 0, 0]}
           />
         </Suspense>
