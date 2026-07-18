@@ -1,128 +1,115 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { memo, useRef, useState, type KeyboardEvent, type MouseEvent } from "react"
 import { Html } from "@react-three/drei"
 import { useFrame } from "@react-three/fiber"
 import type * as THREE from "three"
+import type { Card } from "./card-context"
 import { useCard } from "./card-context"
 
-interface FloatingCardProps {
-  card: {
-    id: string
-    imageUrl: string
-    alt: string
-    title: string
-    isPlaceholder?: boolean
-  }
-  position: {
-    x: number
-    y: number
-    z: number
-    rotationX: number
-    rotationY: number
-    rotationZ: number
-  }
+export interface CardPosition {
+  x: number
+  y: number
+  z: number
+  rotationX?: number
+  rotationY?: number
+  rotationZ?: number
 }
 
-export default function FloatingCard({ card, position }: FloatingCardProps) {
+interface FloatingCardProps {
+  card: Card
+  position: CardPosition
+  distanceFactor?: number
+  compact?: boolean
+}
+
+const tealGlow = "0 25px 50px rgba(49, 184, 198, 0.5), 0 0 30px rgba(49, 184, 198, 0.3)"
+const tealBorder = "2px solid rgba(49, 184, 198, 0.5)"
+
+function FloatingCard({ card, position, distanceFactor = 10, compact = false }: FloatingCardProps) {
   const groupRef = useRef<THREE.Group>(null)
   const [hovered, setHovered] = useState(false)
-  const [imgLoaded, setImgLoaded] = useState(false)
+  const [imageLoaded, setImageLoaded] = useState(false)
   const { setSelectedCard } = useCard()
 
-  // Original teal-accent look used previously
-  const tealGlow = "0 25px 50px rgba(49, 184, 198, 0.5), 0 0 30px rgba(49, 184, 198, 0.3)"
-  const tealBorder = "2px solid rgba(49, 184, 198, 0.5)"
-  const tealBg = "linear-gradient(135deg, #0a0c0c 0%, #121414 60%), radial-gradient(1200px 400px at -10% -10%, rgba(49,184,198,0.25), rgba(0,0,0,0) 60%), radial-gradient(800px 300px at 110% 110%, rgba(49,184,198,0.2), rgba(0,0,0,0) 60%)"
-
-  // Make cards always face the camera
+  // Preserve the original globe behavior. Facing each group toward the camera
+  // produces the clean radial orientation when the sphere is viewed top-down.
   useFrame(({ camera }) => {
-    if (groupRef.current) {
-      groupRef.current.lookAt(camera.position)
-    }
+    groupRef.current?.lookAt(camera.position)
   })
 
-  const handleClick = (e: any) => {
-    e.stopPropagation()
-    setSelectedCard(card)
+  const openCard = () => setSelectedCard(card)
+  const handleClick = (event: MouseEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    openCard()
   }
-
-  // Handle clicks from the DOM-based Html overlay so anywhere on the card opens
-  const handleDomClick: React.MouseEventHandler<HTMLDivElement> = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setSelectedCard(card)
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      openCard()
+    }
   }
 
   return (
     <group ref={groupRef} position={[position.x, position.y, position.z]}>
-
-      {/* Visual card content */}
       <Html
         transform
-        distanceFactor={10}
+        distanceFactor={distanceFactor}
         zIndexRange={[100, 0]}
         position={[0, 0, 0.01]}
         style={{
-          transition: "transform 150ms ease, filter 150ms ease",
-          transform: hovered ? "scale(1.06)" : "scale(1)",
-          // allow clicking anywhere on the visual card
           pointerEvents: "auto",
           cursor: "pointer",
-          willChange: "transform, filter",
+          transform: hovered ? "scale(1.055)" : "scale(1)",
+          transition: "transform 160ms cubic-bezier(0.22, 1, 0.36, 1)",
+          willChange: hovered ? "transform" : "auto",
         }}
       >
         <div
           role="button"
-          aria-label={`${card.title} – open`}
-          onClick={handleDomClick}
+          tabIndex={0}
+          aria-label={`Open ${card.title}`}
+          onClick={handleClick}
+          onKeyDown={handleKeyDown}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
-          className="w-40 rounded-lg overflow-hidden shadow-2xl bg-[#1F2121] p-2 select-none"
+          onFocus={() => setHovered(true)}
+          onBlur={() => setHovered(false)}
+          className={`${compact ? "w-36 p-1.5" : "w-40 p-2"} select-none overflow-hidden rounded-lg bg-[#1F2121] shadow-2xl outline-none focus-visible:ring-2 focus-visible:ring-[#31b8c6] focus-visible:ring-offset-2 focus-visible:ring-offset-black`}
           style={{
             boxShadow: hovered
-              ? (card.isPlaceholder ? tealGlow : "0 18px 38px rgba(0, 0, 0, 0.55)")
+              ? card.isPlaceholder
+                ? tealGlow
+                : "0 18px 38px rgba(0, 0, 0, 0.55)"
               : "0 15px 30px rgba(0, 0, 0, 0.6)",
-            border: hovered ? (card.isPlaceholder ? tealBorder : "1px solid rgba(255, 255, 255, 0.15)") : "1px solid rgba(255, 255, 255, 0.1)",
+            border: hovered
+              ? card.isPlaceholder
+                ? tealBorder
+                : "1px solid rgba(255, 255, 255, 0.15)"
+              : "1px solid rgba(255, 255, 255, 0.1)",
           }}
         >
-          {/* Image or textured placeholder */}
-          <div className="w-full h-40 rounded-md overflow-hidden relative">
-            {card.imageUrl.startsWith("/placeholder") ? (
-              <div
-                className="absolute inset-0 rounded-md"
-                style={{
-                  background: tealBg,
-                  border: "1px solid rgba(255,255,255,0.08)",
-                }}
-              />
-            ) : (
-              <>
-                <div
-                  className="absolute inset-0 bg-[#0f1111]"
-                  style={{ opacity: imgLoaded ? 0 : 1, transition: "opacity 200ms ease" }}
-                />
-                <img
-                  src={encodeURI(card.imageUrl) || "/placeholder.svg"}
-                  alt={card.alt}
-                  className="w-full h-full object-cover rounded-md"
-                  loading="lazy"
-                  decoding="async"
-                  fetchPriority="low"
-                  draggable={false}
-                  onLoad={() => setImgLoaded(true)}
-                  style={{ opacity: imgLoaded ? 1 : 0, transition: "opacity 200ms ease" }}
-                />
-              </>
-            )}
+          <div className={`${compact ? "h-36" : "h-40"} relative w-full overflow-hidden rounded-md bg-[#0f1111]`}>
+            <div
+              className="absolute inset-0 bg-[#0f1111] transition-opacity duration-200"
+              style={{ opacity: imageLoaded ? 0 : 1 }}
+            />
+            <img
+              src={card.imageUrl}
+              alt={card.alt}
+              className="h-full w-full rounded-md object-cover transition-opacity duration-200"
+              loading="lazy"
+              decoding="async"
+              draggable={false}
+              onLoad={() => setImageLoaded(true)}
+              style={{ opacity: imageLoaded ? 1 : 0 }}
+            />
           </div>
-          {card.imageUrl.startsWith("/placeholder") && (
-            <div className="mt-1 text-center">
-              <p className="text-white text-[10px] opacity-80">Many more to come</p>
-            </div>
-          )}
         </div>
       </Html>
     </group>
   )
 }
+
+export default memo(FloatingCard)

@@ -1,168 +1,137 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useRef, useEffect, type MouseEvent } from "react"
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react"
 import { X } from "lucide-react"
 import { useCard } from "./card-context"
 
 export default function CardModal() {
   const { selectedCard, setSelectedCard } = useCard()
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
-  const [isHovered, setIsHovered] = useState(false)
-  // favorite state removed (no favorite button in modal)
-  const [imgLoaded, setImgLoaded] = useState(false)
-  const cardRef = useRef<HTMLDivElement>(null)
+  const [imageLoaded, setImageLoaded] = useState(false)
   const [entered, setEntered] = useState(false)
+  const cardRef = useRef<HTMLDivElement>(null)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
+  const rectRef = useRef<DOMRect | null>(null)
+  const frameRef = useRef<number | null>(null)
 
-  // Close on Escape for better UX — must be before any conditional return
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setSelectedCard(null)
-      }
+    if (!selectedCard) return
+
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setImageLoaded(false)
+    setEntered(false)
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    const frame = requestAnimationFrame(() => {
+      setEntered(true)
+      closeButtonRef.current?.focus()
+    })
+
+    return () => {
+      cancelAnimationFrame(frame)
+      document.body.style.overflow = previousOverflow
+      previousFocusRef.current?.focus()
     }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [setSelectedCard])
+  }, [selectedCard])
 
-  // Subtle entrance animation
   useEffect(() => {
-    const id = requestAnimationFrame(() => setEntered(true))
-    return () => cancelAnimationFrame(id)
+    if (!selectedCard) return
+    const handleEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedCard(null)
+    }
+    window.addEventListener("keydown", handleEscape)
+    return () => window.removeEventListener("keydown", handleEscape)
+  }, [selectedCard, setSelectedCard])
+
+  useEffect(() => () => {
+    if (frameRef.current !== null) cancelAnimationFrame(frameRef.current)
   }, [])
 
   if (!selectedCard) return null
 
-  const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return
-    const rect = cardRef.current.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    setMousePosition({ x, y })
-
-    // Calculate rotation based on mouse position
-    const centerX = rect.width / 2
-    const centerY = rect.height / 2
-    const rotateX = (y - centerY) / 15
-    const rotateY = (centerX - x) / 15
-    cardRef.current.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`
-  }
-
-  const handleMouseEnter = () => {
-    setIsHovered(true)
-  }
-
-  const handleMouseLeave = () => {
-    setIsHovered(false)
-    if (cardRef.current) {
-      cardRef.current.style.transition = "transform 0.5s ease-out"
-      cardRef.current.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg)"
+  const close = () => setSelectedCard(null)
+  const handleDialogKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Tab") {
+      event.preventDefault()
+      closeButtonRef.current?.focus()
     }
   }
-
-  // no-op (buttons removed)
-
-  const handleClose = () => {
-    setSelectedCard(null)
+  const handlePointerEnter = () => {
+    rectRef.current = cardRef.current?.getBoundingClientRect() ?? null
   }
-
-  // (Escape handler is declared above to keep hook order consistent.)
-
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      handleClose()
-    }
+  const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== "mouse" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+    const rect = rectRef.current
+    if (!rect || !cardRef.current) return
+    const x = event.clientX
+    const y = event.clientY
+    if (frameRef.current !== null) cancelAnimationFrame(frameRef.current)
+    frameRef.current = requestAnimationFrame(() => {
+      if (!cardRef.current) return
+      const rotateX = ((y - rect.top) / rect.height - 0.5) * -2.4
+      const rotateY = ((x - rect.left) / rect.width - 0.5) * 2.4
+      cardRef.current.style.transform = `perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`
+    })
+  }
+  const handlePointerLeave = () => {
+    rectRef.current = null
+    if (frameRef.current !== null) cancelAnimationFrame(frameRef.current)
+    frameRef.current = null
+    if (cardRef.current) cardRef.current.style.transform = "perspective(1200px) rotateX(0deg) rotateY(0deg)"
   }
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
-      onClick={handleBackdropClick}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="card-modal-title"
+      onKeyDown={handleDialogKeyDown}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) close()
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/90 p-3 sm:p-8"
     >
+      <h2 id="card-modal-title" className="sr-only">{selectedCard.title}</h2>
       <div
-        className="relative w-full mx-4 max-w-sm sm:max-w-md"
+        className="relative flex max-h-[92dvh] max-w-[96vw] items-center justify-center"
         style={{
-          willChange: "transform, opacity",
-          transform: entered ? "scale(1)" : "scale(0.98)",
           opacity: entered ? 1 : 0,
-          transition: "transform 140ms ease, opacity 140ms ease",
+          transform: entered ? "scale(1)" : "scale(0.975)",
+          transition: "opacity 160ms ease, transform 200ms cubic-bezier(0.22, 1, 0.36, 1)",
         }}
       >
-        {/* Close Button */}
         <button
-          onClick={handleClose}
-          className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors z-10"
+          ref={closeButtonRef}
+          type="button"
+          onClick={close}
+          aria-label="Close image"
+          className="absolute right-2 top-2 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/75 text-white shadow-lg outline-none transition-colors hover:border-[#31b8c6]/70 hover:bg-[#162124] focus-visible:ring-2 focus-visible:ring-[#31b8c6]"
         >
-          <X className="w-8 h-8" />
+          <X aria-hidden="true" className="h-5 w-5" />
         </button>
 
-        {/* Card */}
-        <div style={{ perspective: "1000px" }} className="w-full">
-          <div
-            ref={cardRef}
-            className="relative cursor-pointer rounded-[16px] bg-[#1F2121] p-4 transition-all duration-300 ease-out w-full max-h-[85vh] overflow-hidden"
-            style={{
-              transformStyle: "preserve-3d",
-              boxShadow:
-                "rgba(0, 0, 0, 0.01) 0px 520px 146px 0px, rgba(0, 0, 0, 0.04) 0px 333px 133px 0px, rgba(0, 0, 0, 0.26) 0px 83px 83px 0px, rgba(0, 0, 0, 0.29) 0px 21px 46px 0px",
-              willChange: "transform",
-            }}
-            onMouseMove={handleMouseMove}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-          >
-            {/* Main image */}
-            <div className="relative w-full mb-4" style={{ aspectRatio: "3 / 4" }}>
-              {selectedCard.imageUrl.startsWith("/placeholder") ? (
-                <div
-                  className="absolute inset-0 rounded-[16px] flex items-center justify-center text-white/85 text-sm"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #0a0c0c 0%, #121414 60%), radial-gradient(1200px 400px at -10% -10%, rgba(49,184,198,0.25), rgba(0,0,0,0) 60%), radial-gradient(800px 300px at 110% 110%, rgba(49,184,198,0.2), rgba(0,0,0,0) 60%)",
-                    border: "1px solid rgba(49,184,198,0.35)",
-                    boxShadow: "0 30px 60px rgba(49,184,198,0.35)",
-                  }}
-                >
-                  Many more to come
-                </div>
-              ) : (
-                <>
-                  <div
-                    className="absolute inset-0 rounded-[16px] bg-[#0f1111]"
-                    style={{ opacity: imgLoaded ? 0 : 1, transition: "opacity 200ms ease" }}
-                  />
-                  <img
-                    loading="lazy"
-                    decoding="async"
-                    fetchPriority="low"
-                    className="absolute inset-0 h-full w-full rounded-[16px] bg-[#000000] object-cover"
-                    alt={selectedCard.alt}
-                    src={encodeURI(selectedCard.imageUrl) || "/placeholder.svg"}
-                    onLoad={() => setImgLoaded(true)}
-                    style={{
-                      boxShadow: "rgba(0, 0, 0, 0.05) 0px 5px 6px 0px",
-                      opacity: imgLoaded ? 1 : 0,
-                      transition: "opacity 200ms ease",
-                    }}
-                  />
-                </>
-              )}
-              {/* Vignette overlay */}
-              <div
-                className="pointer-events-none absolute inset-0 rounded-[16px]"
-                style={{
-                  background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 60%, rgba(0,0,0,0.35) 100%)",
-                }}
-              />
-            </div>
-
-            {/* No title below the image */}
-
-            {/* No action buttons for both real and placeholder cards. */}
-            {!(selectedCard.imageUrl || "").startsWith("/hackathon") && (
-              <p className="text-white/90 text-center text-sm">Many more to come</p>
-            )}
+        <div
+          ref={cardRef}
+          onPointerEnter={handlePointerEnter}
+          onPointerMove={handlePointerMove}
+          onPointerLeave={handlePointerLeave}
+          className="relative flex max-h-[92dvh] max-w-[96vw] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#111415] p-2 shadow-[0_32px_90px_rgba(0,0,0,0.72)] transition-transform duration-300 ease-out sm:p-3"
+          style={{ transformStyle: "preserve-3d" }}
+        >
+          <div className="relative flex min-h-40 min-w-40 items-center justify-center overflow-hidden rounded-xl bg-black sm:min-h-56 sm:min-w-56">
+            <div
+              className="absolute inset-0 bg-[#0f1111] transition-opacity duration-200"
+              style={{ opacity: imageLoaded ? 0 : 1 }}
+            />
+            <img
+              src={selectedCard.imageUrl}
+              alt={selectedCard.alt}
+              className="block h-auto max-h-[calc(92dvh-1.5rem)] w-auto max-w-[calc(96vw-1rem)] rounded-xl object-contain transition-opacity duration-200 sm:max-h-[calc(92dvh-2rem)] sm:max-w-[calc(96vw-1.5rem)]"
+              decoding="async"
+              draggable={false}
+              onLoad={() => setImageLoaded(true)}
+              style={{ opacity: imageLoaded ? 1 : 0 }}
+            />
           </div>
         </div>
       </div>
