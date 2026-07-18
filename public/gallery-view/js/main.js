@@ -16,6 +16,16 @@ const DRAG_FOV = 74;
 const CARD_W = 4.6;
 const CARD_H = 5.8;
 
+function restingCardScale() {
+  if (innerWidth <= 640) return 0.76;
+  if (innerWidth <= 900 && innerHeight > innerWidth) return 0.88;
+  return 1;
+}
+
+function restingFov() {
+  return innerWidth <= 640 ? 74 : BASE_FOV;
+}
+
 const ACHIEVEMENT_ASSETS = [
   {
     src: '/hackathon/github-profile-badge.webp', title: 'GitHub Identity', kind: 'Milestone', year: 2026,
@@ -420,10 +430,11 @@ let yaw = -1.5, pitch = 0.14;
 let targetYaw = -1.5, targetPitch = 0.14;
 let vYaw = 0, vPitch = 0;
 let velSmooth = 0;
-let fov = BASE_FOV;
+let fov = restingFov();
 let parX = 0, parY = 0; // mouse parallax
 let dragging = false;
 let lastX = 0, lastY = 0, downX = 0, downY = 0;
+let pressedCard = null;
 let controlsEnabled = false;
 let activeCard = null;
 const PITCH_LIMIT = LAT_SPAN / 2 - 0.12;
@@ -433,14 +444,16 @@ const raycaster = new THREE.Raycaster();
 let hovered = null;
 
 function setHovered(mesh) {
+  const restingScale = restingCardScale();
   if (hovered === mesh) return;
   if (hovered) {
-    gsap.to(hovered.scale, { x: 1, y: 1, z: 1, duration: 0.5, ease: 'power2.out' });
+    gsap.to(hovered.scale, { x: restingScale, y: restingScale, z: restingScale, duration: 0.5, ease: 'power2.out' });
     gsap.to(hovered.material.uniforms.uHover, { value: 0, duration: 0.5, ease: 'power2.out' });
   }
   hovered = mesh;
   if (hovered) {
-    gsap.to(hovered.scale, { x: 1.07, y: 1.07, z: 1.07, duration: 0.5, ease: 'power2.out' });
+    const hoverScale = restingScale * 1.07;
+    gsap.to(hovered.scale, { x: hoverScale, y: hoverScale, z: hoverScale, duration: 0.5, ease: 'power2.out' });
     gsap.to(hovered.material.uniforms.uHover, { value: 1, duration: 0.5, ease: 'power2.out' });
     captionIndex.textContent = String(hovered.userData.index + 1).padStart(3, '0') + ' / ' + TOTAL;
     captionTitle.textContent = hovered.userData.title;
@@ -456,12 +469,20 @@ function setHovered(mesh) {
   }
 }
 
+function cardAt(clientX, clientY) {
+  pointerNDC.set((clientX / innerWidth) * 2 - 1, -(clientY / innerHeight) * 2 + 1);
+  raycaster.setFromCamera(pointerNDC, camera);
+  const hits = raycaster.intersectObjects(cards);
+  return hits.length ? hits[0].object : null;
+}
+
 app.addEventListener('pointerdown', (e) => {
   if (!controlsEnabled) return;
   dragging = true;
   cursorEl.classList.add('is-drag');
   lastX = downX = e.clientX;
   lastY = downY = e.clientY;
+  pressedCard = cardAt(e.clientX, e.clientY);
   vYaw = vPitch = 0;
 });
 
@@ -486,7 +507,12 @@ function endDrag(e) {
   dragging = false;
   cursorEl.classList.remove('is-drag');
   const moved = Math.hypot(e.clientX - downX, e.clientY - downY);
-  if (moved < 6 && hovered && controlsEnabled) openCard(hovered);
+  const tapTarget = cardAt(e.clientX, e.clientY);
+  const tapSlop = e.pointerType === 'touch' ? 14 : 6;
+  if (moved < tapSlop && tapTarget && (!pressedCard || tapTarget === pressedCard) && controlsEnabled) {
+    openCard(tapTarget);
+  }
+  pressedCard = null;
 }
 window.addEventListener('pointerup', endDrag);
 window.addEventListener('pointercancel', endDrag);
@@ -593,7 +619,8 @@ function closeCard() {
   const tl = gsap.timeline({ onComplete: () => { controlsEnabled = true; } });
   tl.to(detailEl, { autoAlpha: 0, duration: 0.4, ease: 'power2.in' }, 0);
   tl.to(mesh.position, { x: base.x, y: base.y, z: base.z, duration: 1.0, ease: 'power3.inOut' }, 0.1);
-  tl.to(mesh.scale, { x: 1, y: 1, z: 1, duration: 1.0, ease: 'power3.inOut' }, 0.1);
+  const restingScale = restingCardScale();
+  tl.to(mesh.scale, { x: restingScale, y: restingScale, z: restingScale, duration: 1.0, ease: 'power3.inOut' }, 0.1);
   tl.to(mesh.material.uniforms.uHover, { value: 0, duration: 0.6 }, 0.4);
   cards.forEach((other) => {
     if (other === mesh) return;
@@ -614,7 +641,7 @@ function nextProject() {
     onComplete: () => {
       // reset the old card behind the covered screen
       old.position.copy(old.userData.basePos.clone().multiplyScalar(1.18));
-      old.scale.setScalar(1);
+      old.scale.setScalar(restingCardScale());
       old.material.uniforms.uHover.value = 0;
       old.material.uniforms.uOpacity.value = 0.04;
       // place the new card filled, snap the camera aim to it
@@ -664,7 +691,8 @@ function beginIntro() {
       const b = m.userData.basePos;
       const d = (i % COLS) * 0.018 + Math.floor(i / COLS) * 0.05;
       gsap.to(m.position, { x: b.x, y: b.y, z: b.z, duration: 1.7, ease: 'expo.out', delay: d });
-      gsap.to(m.scale, { x: 1, y: 1, z: 1, duration: 1.7, ease: 'expo.out', delay: d });
+      const restingScale = restingCardScale();
+      gsap.to(m.scale, { x: restingScale, y: restingScale, z: restingScale, duration: 1.7, ease: 'expo.out', delay: d });
     });
     gsap.delayedCall(1.1, () => { controlsEnabled = true; });
   }, '-=0.75');
@@ -678,6 +706,10 @@ window.addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
+  if (!activeCard) {
+    const restingScale = restingCardScale();
+    cards.forEach((card) => card.scale.setScalar(restingScale));
+  }
 });
 
 function tick() {
@@ -711,7 +743,8 @@ function tick() {
   camera.rotation.x = pitch + parY;
 
   // FOV kick while dragging
-  const targetFov = dragging ? DRAG_FOV : BASE_FOV;
+  const baseFov = restingFov();
+  const targetFov = dragging ? baseFov + (DRAG_FOV - BASE_FOV) : baseFov;
   fov += (targetFov - fov) * 0.08;
   camera.fov = fov;
   camera.updateProjectionMatrix();

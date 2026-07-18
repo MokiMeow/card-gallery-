@@ -1,11 +1,15 @@
 "use client"
 
 import { useMemo } from "react"
+import { useThree } from "@react-three/fiber"
 import FloatingCard, { type CardPosition } from "./floating-card"
 import { useCard } from "./card-context"
 
 export default function CardGalaxy() {
   const { cards } = useCard()
+  const size = useThree((state) => state.size)
+  const portrait = size.height > size.width
+  const sceneScale = portrait && size.width <= 640 ? 0.72 : portrait && size.width <= 900 ? 0.84 : 1
 
   const layout = useMemo(() => {
     const goldenRatio = (1 + Math.sqrt(5)) / 2
@@ -39,10 +43,10 @@ export default function CardGalaxy() {
   }, [cards])
 
   return (
-    <>
+    <group scale={sceneScale}>
       {layout.map(({ card, position }) => (
         <FloatingCard key={card.id} card={card} position={position} />
       ))}
-    </>
+    </group>
   )
 }

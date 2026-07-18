@@ -141,7 +141,8 @@ body {
 .menu span:hover,
 .menu a:hover { color: var(--accent); }
 
-#app { position: fixed; inset: 0; }
+#app { position: fixed; inset: 0; touch-action: none; }
+#app canvas { touch-action: none; }
 
 /* Ghost display type */
 #ghost {

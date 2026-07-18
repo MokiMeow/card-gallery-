@@ -1,6 +1,6 @@
 "use client"
 
-import { memo, useRef, useState, type KeyboardEvent, type MouseEvent } from "react"
+import { memo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react"
 import { Html } from "@react-three/drei"
 import { useFrame } from "@react-three/fiber"
 import type * as THREE from "three"
@@ -30,6 +30,7 @@ function FloatingCard({ card, position, distanceFactor = 10, compact = false }: 
   const groupRef = useRef<THREE.Group>(null)
   const [hovered, setHovered] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
+  const pointerStart = useRef({ x: 0, y: 0 })
   const { setSelectedCard } = useCard()
 
   // Preserve the original globe behavior. Facing each group toward the camera
@@ -43,6 +44,20 @@ function FloatingCard({ card, position, distanceFactor = 10, compact = false }: 
     event.preventDefault()
     event.stopPropagation()
     openCard()
+  }
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    event.stopPropagation()
+    pointerStart.current = { x: event.clientX, y: event.clientY }
+  }
+  const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    event.stopPropagation()
+    if (event.pointerType === "mouse") return
+
+    const moved = Math.hypot(
+      event.clientX - pointerStart.current.x,
+      event.clientY - pointerStart.current.y,
+    )
+    if (moved <= 12) openCard()
   }
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Enter" || event.key === " ") {
@@ -71,6 +86,8 @@ function FloatingCard({ card, position, distanceFactor = 10, compact = false }: 
           tabIndex={0}
           aria-label={`Open ${card.title}`}
           onClick={handleClick}
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
           onKeyDown={handleKeyDown}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
@@ -78,6 +95,7 @@ function FloatingCard({ card, position, distanceFactor = 10, compact = false }: 
           onBlur={() => setHovered(false)}
           className={`${compact ? "w-36 p-1.5" : "w-40 p-2"} select-none overflow-hidden rounded-lg bg-[#1F2121] shadow-2xl outline-none focus-visible:ring-2 focus-visible:ring-[#31b8c6] focus-visible:ring-offset-2 focus-visible:ring-offset-black`}
           style={{
+            touchAction: "manipulation",
             boxShadow: hovered
               ? card.isPlaceholder
                 ? tealGlow
