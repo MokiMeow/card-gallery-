@@ -89,7 +89,13 @@ export default function CardModal() {
       onClick={(event) => {
         if (event.target === event.currentTarget) close()
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/90 p-3 sm:p-8"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/90 sm:p-8"
+      style={{
+        paddingTop: "max(0.75rem, env(safe-area-inset-top))",
+        paddingRight: "max(0.75rem, env(safe-area-inset-right))",
+        paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
+        paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
+      }}
     >
       <h2 id="card-modal-title" className="sr-only">{selectedCard.title}</h2>
       <div

@@ -260,6 +260,7 @@ body {
 }
 
 .back-btn, .next-btn {
+  min-height: 44px;
   background: rgba(8, 10, 12, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.22);
   color: var(--fg);
@@ -269,7 +270,27 @@ body {
   font-size: 13px;
   transition: background 0.3s ease, border-color 0.3s ease;
 }
-.back-btn { position: fixed; top: 24px; left: 32px; z-index: 25; }
+.back-btn {
+  position: fixed;
+  top: max(24px, env(safe-area-inset-top));
+  left: max(32px, env(safe-area-inset-left));
+  z-index: 25;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 6px 7px;
+}
+.back-icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.back-icon svg { width: 15px; height: 15px; }
 .back-btn:hover, .next-btn:hover {
   background: #f1f3f3;
   border-color: #f1f3f3;
@@ -301,6 +322,10 @@ body {
   word-break: normal;
   text-wrap: balance;
 }
+.back-btn:focus-visible, .next-btn:focus-visible, .menu a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
 
 .detail-meta {
   display: grid;
@@ -331,7 +356,10 @@ body {
 
 @media (max-width: 640px) {
   .site-header {
-    padding: 18px;
+    padding-top: max(18px, env(safe-area-inset-top));
+    padding-right: max(18px, env(safe-area-inset-right));
+    padding-bottom: 18px;
+    padding-left: max(18px, env(safe-area-inset-left));
   }
   .menu span,
   .menu a {
@@ -365,8 +393,8 @@ body {
     max-height: min(46vh, var(--image-natural-height, 46vh));
   }
   .back-btn {
-    top: 12px;
-    left: 12px;
+    top: max(12px, env(safe-area-inset-top));
+    left: max(12px, env(safe-area-inset-left));
   }
   .detail-inner {
     margin-top: -28px;

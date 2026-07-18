@@ -64,7 +64,11 @@ function GalleryExperience() {
 
       <a
         href="/gallery-view/index.html"
-        className="group fixed right-4 top-4 z-30 inline-flex min-h-12 items-center rounded-2xl border border-white/15 bg-[#0a0d0e]/90 p-1.5 text-white shadow-[0_14px_40px_rgba(0,0,0,0.58)] backdrop-blur-md outline-none transition-[transform,border-color,background-color] duration-200 hover:-translate-y-0.5 hover:border-[#31b8c6]/50 hover:bg-[#101719]/95 active:translate-y-0 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-[#31b8c6] focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:right-6 sm:top-6"
+        className="group fixed z-30 inline-flex min-h-12 items-center rounded-2xl border border-white/15 bg-[#0a0d0e]/90 p-1.5 text-white shadow-[0_14px_40px_rgba(0,0,0,0.58)] backdrop-blur-md outline-none transition-[transform,border-color,background-color] duration-200 hover:-translate-y-0.5 hover:border-[#31b8c6]/50 hover:bg-[#101719]/95 active:translate-y-0 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-[#31b8c6] focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+        style={{
+          top: "max(1rem, env(safe-area-inset-top))",
+          right: "max(1rem, env(safe-area-inset-right))",
+        }}
       >
         <span className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/8 text-[#8dd7dc]">
           <Orbit aria-hidden="true" className="h-[18px] w-[18px]" />

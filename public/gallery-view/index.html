@@ -42,7 +42,15 @@
   <div class="hint">Drag or scroll to explore &middot; Click a card to open</div>
 
   <section id="detail" class="detail" aria-hidden="true">
-    <button id="back" class="back-btn" data-hover>&larr; Back to gallery</button>
+    <button id="back" class="back-btn" data-hover>
+      <span class="back-icon" aria-hidden="true">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7">
+          <path d="M16.5 10h-12" stroke-linecap="round" />
+          <path d="m9 5.5-4.5 4.5L9 14.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </span>
+      Back to gallery
+    </button>
     <div class="detail-hero"><img id="detail-img" alt="Project hero" /></div>
     <div class="detail-inner">
       <p class="detail-kicker">Milestone</p>
