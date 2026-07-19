@@ -1,8 +1,8 @@
 "use client"
 
-import { memo, useRef, useState, type KeyboardEvent } from "react"
+import { memo, useRef, useState } from "react"
 import { Html } from "@react-three/drei"
-import { useFrame, type ThreeEvent } from "@react-three/fiber"
+import { useFrame } from "@react-three/fiber"
 import type * as THREE from "three"
 import type { Card } from "./card-context"
 import { useCard } from "./card-context"
@@ -39,35 +39,9 @@ function FloatingCard({ card, position, distanceFactor = 10, compact = false }: 
   })
 
   const openCard = () => setSelectedCard(card)
-  const handleCardClick = (event: ThreeEvent<MouseEvent>) => {
-    event.stopPropagation()
-    openCard()
-  }
-  const handlePointerOver = (event: ThreeEvent<PointerEvent>) => {
-    event.stopPropagation()
-    setHovered(true)
-  }
-  const handlePointerOut = (event: ThreeEvent<PointerEvent>) => {
-    event.stopPropagation()
-    setHovered(false)
-  }
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault()
-      openCard()
-    }
-  }
 
   return (
     <group ref={groupRef} position={[position.x, position.y, position.z]}>
-      <mesh
-        onClick={handleCardClick}
-        onPointerOver={handlePointerOver}
-        onPointerOut={handlePointerOut}
-      >
-        <planeGeometry args={[4.4, 4.4]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-      </mesh>
       <Html
         transform
         distanceFactor={distanceFactor}
@@ -80,15 +54,18 @@ function FloatingCard({ card, position, distanceFactor = 10, compact = false }: 
           willChange: hovered ? "transform" : "auto",
         }}
       >
-        <div
-          role="button"
-          tabIndex={0}
+        <button
+          type="button"
           aria-label={`Open ${card.title}`}
-          onKeyDown={handleKeyDown}
+          onClick={openCard}
+          onPointerDown={(event) => event.stopPropagation()}
+          onPointerEnter={() => setHovered(true)}
+          onPointerLeave={() => setHovered(false)}
           onFocus={() => setHovered(true)}
           onBlur={() => setHovered(false)}
-          className={`${compact ? "w-36 p-1.5" : "w-40 p-2"} select-none overflow-hidden rounded-lg bg-[#1F2121] shadow-2xl outline-none focus-visible:ring-2 focus-visible:ring-[#31b8c6] focus-visible:ring-offset-2 focus-visible:ring-offset-black`}
+          className={`${compact ? "w-36 p-1.5" : "w-40 p-2"} block cursor-pointer select-none overflow-hidden rounded-lg bg-[#1F2121] text-left shadow-2xl outline-none focus-visible:ring-2 focus-visible:ring-[#31b8c6] focus-visible:ring-offset-2 focus-visible:ring-offset-black`}
           style={{
+            pointerEvents: "auto",
             touchAction: "manipulation",
             boxShadow: hovered
               ? card.isPlaceholder
@@ -118,7 +95,7 @@ function FloatingCard({ card, position, distanceFactor = 10, compact = false }: 
               style={{ opacity: imageLoaded ? 1 : 0 }}
             />
           </div>
-        </div>
+        </button>
       </Html>
     </group>
   )
