@@ -1,11 +1,19 @@
 "use client"
 
-import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react"
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react"
 import { X } from "lucide-react"
-import { useCard } from "./card-context"
+import { useCard, type Card } from "./card-context"
 
 export default function CardModal() {
   const { selectedCard, setSelectedCard } = useCard()
+  const close = useCallback(() => setSelectedCard(null), [setSelectedCard])
+
+  if (!selectedCard) return null
+
+  return <OpenCardModal key={selectedCard.id} card={selectedCard} onClose={close} />
+}
+
+function OpenCardModal({ card, onClose }: { card: Card; onClose: () => void }) {
   const [imageLoaded, setImageLoaded] = useState(false)
   const [entered, setEntered] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
@@ -15,11 +23,7 @@ export default function CardModal() {
   const frameRef = useRef<number | null>(null)
 
   useEffect(() => {
-    if (!selectedCard) return
-
     previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    setImageLoaded(false)
-    setEntered(false)
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = "hidden"
     const frame = requestAnimationFrame(() => {
@@ -32,24 +36,20 @@ export default function CardModal() {
       document.body.style.overflow = previousOverflow
       previousFocusRef.current?.focus()
     }
-  }, [selectedCard])
+  }, [])
 
   useEffect(() => {
-    if (!selectedCard) return
     const handleEscape = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") setSelectedCard(null)
+      if (event.key === "Escape") onClose()
     }
     window.addEventListener("keydown", handleEscape)
     return () => window.removeEventListener("keydown", handleEscape)
-  }, [selectedCard, setSelectedCard])
+  }, [onClose])
 
   useEffect(() => () => {
     if (frameRef.current !== null) cancelAnimationFrame(frameRef.current)
   }, [])
 
-  if (!selectedCard) return null
-
-  const close = () => setSelectedCard(null)
   const handleDialogKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Tab") {
       event.preventDefault()
@@ -87,7 +87,7 @@ export default function CardModal() {
       aria-labelledby="card-modal-title"
       onKeyDown={handleDialogKeyDown}
       onClick={(event) => {
-        if (event.target === event.currentTarget) close()
+        if (event.target === event.currentTarget) onClose()
       }}
       className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/90 sm:p-8"
       style={{
@@ -97,7 +97,7 @@ export default function CardModal() {
         paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
       }}
     >
-      <h2 id="card-modal-title" className="sr-only">{selectedCard.title}</h2>
+      <h2 id="card-modal-title" className="sr-only">{card.title}</h2>
       <div
         className="relative flex max-h-[92dvh] max-w-[96vw] items-center justify-center"
         style={{
@@ -109,7 +109,7 @@ export default function CardModal() {
         <button
           ref={closeButtonRef}
           type="button"
-          onClick={close}
+          onClick={onClose}
           aria-label="Close image"
           className="absolute right-2 top-2 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/75 text-white shadow-lg outline-none transition-colors hover:border-[#31b8c6]/70 hover:bg-[#162124] focus-visible:ring-2 focus-visible:ring-[#31b8c6]"
         >
@@ -129,9 +129,11 @@ export default function CardModal() {
               className="absolute inset-0 bg-[#0f1111] transition-opacity duration-200"
               style={{ opacity: imageLoaded ? 0 : 1 }}
             />
+            {/* The modal preserves each local asset's intrinsic dimensions. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={selectedCard.imageUrl}
-              alt={selectedCard.alt}
+              src={card.imageUrl}
+              alt={card.alt}
               className="block h-auto max-h-[calc(92dvh-1.5rem)] w-auto max-w-[calc(96vw-1rem)] rounded-xl object-contain transition-opacity duration-200 sm:max-h-[calc(92dvh-2rem)] sm:max-w-[calc(96vw-1.5rem)]"
               decoding="async"
               draggable={false}
