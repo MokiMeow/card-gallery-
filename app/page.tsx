@@ -4,7 +4,7 @@ import { Suspense, useEffect } from "react"
 import { Canvas, useThree } from "@react-three/fiber"
 import { OrbitControls } from "@react-three/drei"
 import { ArrowUpRight, Orbit } from "lucide-react"
-import { PerspectiveCamera, TOUCH } from "three"
+import { MathUtils, PerspectiveCamera, TOUCH } from "three"
 import StarfieldBackground from "@/components/starfield-background"
 import CardGalaxy from "@/components/card-galaxy"
 import CardModal from "@/components/card-modal"
@@ -41,10 +41,12 @@ function ResponsiveSceneCamera() {
     const portrait = size.height > size.width
     const phone = portrait && size.width <= 640
     const tablet = portrait && size.width <= 900
+    const nextFov = phone ? 62 : 60
 
     camera.position.set(0, 0, phone ? 52 : tablet ? 45 : 38)
-    camera.fov = phone ? 62 : 60
-    camera.updateProjectionMatrix()
+    camera.setFocalLength(
+      (0.5 * camera.getFilmHeight()) / Math.tan(MathUtils.degToRad(nextFov * 0.5)),
+    )
     invalidate()
   }, [camera, invalidate, size.height, size.width])
 
@@ -54,7 +56,12 @@ function ResponsiveSceneCamera() {
 function GalleryExperience() {
   return (
     <div className="relative h-[100dvh] w-full touch-none overflow-hidden bg-black">
+      <div className="sr-only">
+        <h1>Mohith&apos;s Card Galaxy</h1>
+        <p>Drag to orbit, pinch or scroll to zoom, and select a card to view it.</p>
+      </div>
       <Canvas
+        aria-label="Interactive 3D gallery of hackathon milestones and visual designs"
         camera={{ position: [0, 0, 38], fov: 60, near: 0.05, far: 240 }}
         dpr={[1, 1.5]}
         frameloop="demand"

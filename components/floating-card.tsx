@@ -1,6 +1,7 @@
 "use client"
 
 import { memo, useRef, useState } from "react"
+import Image from "next/image"
 import { Html } from "@react-three/drei"
 import { useFrame } from "@react-three/fiber"
 import type * as THREE from "three"
@@ -84,12 +85,13 @@ function FloatingCard({ card, position, distanceFactor = 10, compact = false }: 
               className="absolute inset-0 bg-[#0f1111] transition-opacity duration-200"
               style={{ opacity: imageLoaded ? 0 : 1 }}
             />
-            <img
+            <Image
               src={card.imageUrl}
               alt={card.alt}
-              className="h-full w-full rounded-md object-cover transition-opacity duration-200"
+              fill
+              sizes="160px"
+              className="rounded-md object-cover transition-opacity duration-200"
               loading="lazy"
-              decoding="async"
               draggable={false}
               onLoad={() => setImageLoaded(true)}
               style={{ opacity: imageLoaded ? 1 : 0 }}
