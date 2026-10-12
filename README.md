@@ -1,14 +1,17 @@
-# Card Galaxy
+# Mohith | Gallery
 
-Card Galaxy is an interactive 3D archive of Mohith's hackathon milestones and
-visual design work. Visitors can orbit and zoom through the scene, open each card
-in an accessible modal, or enter the alternate gallery experience.
+An interactive gallery of Mohith's hackathon milestones, set in open space. The
+milestones ring the visitor at eye level; the "Untitled Universe" cards around
+them hold space for what has not happened yet.
+
+The same deck can be hung four ways: **Room**, **Spiral** (in the order things
+happened), **Wall** (all at once) and **Tunnel** (fly through it). Select a card
+to bring it forward with its story.
 
 ## Stack
 
 - Next.js and React
-- React Three Fiber, Drei, and Three.js
-- Tailwind CSS
+- Three.js for the scene, Anime.js for every transition
 - TypeScript
 - Vercel
 
@@ -22,6 +25,12 @@ pnpm dev
 ```
 
 Open `http://localhost:3000`.
+
+## Adding a milestone
+
+1. Put the image in `public/hackathon/` (WebP, longest side 1600px or less).
+2. Add an entry to `MILESTONES` in `lib/cards.ts`, with `aspect` set to the
+   image's width divided by its height. The layouts adapt to the count.
 
 ## Verification
 

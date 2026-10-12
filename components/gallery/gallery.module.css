@@ -1,0 +1,432 @@
+/* The gallery's interface: type laid over the room, nothing boxed in. */
+
+.gallery {
+  --bg: #000;
+  --ink: #f2f1ee;
+  --accent: #e8c170;
+  --dim: color-mix(in srgb, var(--ink) 60%, transparent);
+  --line: color-mix(in srgb, var(--ink) 16%, transparent);
+  --display: var(--font-display), "Arial Narrow", sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, monospace;
+  --pad: clamp(16px, 3.6vw, 44px);
+
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--ink);
+  font-variant-ligatures: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+  opacity: 0;
+  transition: opacity 900ms ease;
+}
+
+.canvas:active {
+  cursor: grabbing;
+}
+
+.gallery[data-stage="ready"] .canvas {
+  opacity: 1;
+}
+
+.gallery[data-hover="true"] .canvas {
+  cursor: pointer;
+}
+
+.gallery :is(button, a):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* ── Header ─────────────────────────────────────────── */
+
+.header {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: max(10px, env(safe-area-inset-top, 0px)) var(--pad) 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 900ms ease 600ms;
+}
+
+.gallery[data-stage="ready"] .header {
+  opacity: 1;
+}
+
+.logo {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.logo span {
+  margin-left: 8px;
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+}
+
+.formations {
+  display: flex;
+  pointer-events: auto;
+}
+
+.formations button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  background: none;
+  color: var(--dim);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 180ms ease;
+}
+
+.formations button span {
+  font-family: var(--mono);
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+.formations button::after {
+  content: "";
+  position: absolute;
+  inset: auto 12px 8px;
+  height: 1px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 360ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.formations button:hover,
+.formations button[aria-checked="true"] {
+  color: var(--ink);
+}
+
+.formations button[aria-checked="true"]::after {
+  transform: scaleX(1);
+}
+
+/* ── Loader ─────────────────────────────────────────── */
+
+.loader {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+}
+
+.loaderLabel {
+  margin: 0;
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.loaderNumber {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(5rem, 22vw, 14rem);
+  font-weight: 700;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+
+.loaderBar {
+  width: min(240px, 54vw);
+  height: 1px;
+  background: var(--line);
+}
+
+.loaderBar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transform-origin: left;
+  transition: transform 300ms ease;
+}
+
+/* ── Caption for the card in view ───────────────────── */
+
+.caption {
+  position: absolute;
+  bottom: max(var(--pad), env(safe-area-inset-bottom, 0px));
+  left: var(--pad);
+  z-index: 2;
+  max-width: min(72vw, 46rem);
+  pointer-events: none;
+}
+
+.captionMeta,
+.kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  margin: 0 0 6px;
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.captionMeta b {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.captionTitle {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(2rem, 5.4vw, 4.6rem);
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.hint {
+  position: absolute;
+  right: var(--pad);
+  bottom: max(var(--pad), env(safe-area-inset-bottom, 0px));
+  z-index: 2;
+  margin: 0;
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+/* ── Opened card ────────────────────────────────────── */
+
+.detail {
+  position: absolute;
+  top: 50%;
+  right: var(--pad);
+  z-index: 3;
+  width: min(40vw, 30rem);
+  transform: translateY(-50%);
+}
+
+/* A soft pool of the room's own darkness keeps the copy readable over whatever is behind it. */
+.detail::before {
+  content: "";
+  position: absolute;
+  inset: -18% -30% -18% -22%;
+  z-index: -1;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--bg) 82%, transparent), transparent);
+  pointer-events: none;
+}
+
+.kicker {
+  color: var(--accent);
+}
+
+.kicker span {
+  color: var(--dim);
+}
+
+.detailTitle {
+  margin: 0 0 18px;
+  font-family: var(--display);
+  font-size: clamp(2.2rem, 4.6vw, 4.4rem);
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.detailBody {
+  margin: 0;
+  color: color-mix(in srgb, var(--ink) 88%, transparent);
+  font-size: clamp(1rem, 1.2vw, 1.15rem);
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+.detailNote {
+  margin: 14px 0 0;
+  padding-left: 14px;
+  border-left: 1px solid var(--accent);
+  color: var(--dim);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+.detailNav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 26px;
+}
+
+.detailNav button {
+  display: inline-grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid color-mix(in srgb, var(--ink) 28%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color 180ms ease,
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.detailNav button:hover {
+  border-color: var(--accent);
+}
+
+.detailNav button:active {
+  transform: scale(0.95);
+}
+
+.detailNav svg {
+  width: 18px;
+  height: 18px;
+}
+
+.detailNav .close {
+  width: auto;
+  margin-left: 6px;
+  padding: 0 20px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ── No WebGL: the same content as a plain list ─────── */
+
+.fallback {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  padding: 64px var(--pad);
+}
+
+.fallback h1 {
+  font-family: var(--display);
+  font-size: clamp(2.4rem, 8vw, 5rem);
+  text-transform: uppercase;
+}
+
+.fallback li {
+  max-width: 60ch;
+  margin-bottom: 14px;
+  color: var(--dim);
+  line-height: 1.55;
+}
+
+.fallback strong {
+  display: block;
+  color: var(--ink);
+}
+
+/* ── Portrait ───────────────────────────────────────── */
+
+@media (max-aspect-ratio: 105/100) {
+  .logo span,
+  .formations button span,
+  .hint {
+    display: none;
+  }
+
+  .formations button {
+    padding: 0 9px;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+  }
+
+  .formations button::after {
+    inset: auto 9px 8px;
+  }
+
+  .caption {
+    max-width: calc(100vw - var(--pad) * 2);
+  }
+
+  .detail {
+    top: auto;
+    right: var(--pad);
+    bottom: max(var(--pad), env(safe-area-inset-bottom, 0px));
+    left: var(--pad);
+    width: auto;
+    transform: none;
+  }
+
+  .detailTitle {
+    margin-bottom: 10px;
+    font-size: min(10.5vw, 6svh);
+  }
+
+  .detailBody {
+    font-size: 0.94rem;
+    line-height: 1.5;
+  }
+
+  .detailNote {
+    margin-top: 10px;
+    font-size: 0.86rem;
+    line-height: 1.5;
+  }
+
+  .detailNav {
+    margin-top: 16px;
+  }
+}
+
+@media (max-aspect-ratio: 105/100) and (max-height: 700px) {
+  .detailNote {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .canvas,
+  .header {
+    transition: none;
+  }
+}

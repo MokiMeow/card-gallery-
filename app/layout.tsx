@@ -1,24 +1,24 @@
-import type { Metadata } from 'next'
-import { Geist } from 'next/font/google'
-import './globals.css'
+import type { Metadata, Viewport } from "next"
+import { Geist, Oswald } from "next/font/google"
+import "./globals.css"
 
-const _geist = Geist({ subsets: ["latin"] });
+const body = Geist({ subsets: ["latin"], variable: "--font-body" })
+const display = Oswald({ subsets: ["latin"], weight: "700", variable: "--font-display" })
 
 export const metadata: Metadata = {
-  title: 'Mohith | Card Galaxy',
-  description: 'An interactive 3D archive of Mohith’s hackathon milestones and visual explorations.',
+  title: "Mohith | Gallery",
+  description: "A room of Mohith's hackathon milestones, with space kept for the ones not written yet.",
 }
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+export const viewport: Viewport = {
+  themeColor: "#000000",
+  colorScheme: "dark",
+}
+
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${_geist.className} antialiased`}>
-        {children}
-      </body>
+      <body className={`${body.variable} ${display.variable}`}>{children}</body>
     </html>
   )
 }
