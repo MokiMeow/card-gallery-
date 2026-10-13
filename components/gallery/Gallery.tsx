@@ -179,7 +179,7 @@ export function Gallery() {
         </div>
       )}
 
-      {stage === "ready" && !opened && <p className={styles.hint}>Drag or scroll to look around · Select a card to open it</p>}
+      {stage === "ready" && !opened && <p className={styles.hint}>{formation === "tunnel" ? "Scroll or drag to fly" : "Drag or scroll to look around"} · Select a card to open it</p>}
 
       {opened && (
         <aside ref={detailRef} className={styles.detail} key={opened.info.id + opened.order} aria-label={opened.info.title}>

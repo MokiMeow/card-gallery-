@@ -16,6 +16,7 @@ uniform float uOpen;
 uniform float uGhost;
 uniform float uLoaded;
 uniform float uFade;
+uniform float uVeil;
 uniform float uSweep;
 uniform vec2 uGlare;
 uniform vec3 uAccent;
@@ -61,7 +62,7 @@ void main() {
     col = vec3(0.02) + uInk * rim * 0.1 + uAccent * rim * 0.2;
   }
 
-  gl_FragColor = vec4(col, mask * uFade);
+  gl_FragColor = vec4(col, mask * uFade * uVeil);
   #include <colorspace_fragment>
 }
 `

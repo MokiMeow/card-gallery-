@@ -26,7 +26,27 @@ export type Limits = {
   home: { yaw: number; pitch: number }
 }
 
-export const TUNNEL = { advance: 30, first: 18, gap: 10, radius: 6.4, stop: 17 }
+/**
+ * The Tunnel is a straight corridor. Milestones hang alternately right and left of
+ * the axis, one every `gap`; the visitor stops `stop` short of each. Unwritten cards
+ * tile the wall in rings, and a gate (`hoop`) stands at every milestone.
+ */
+export const TUNNEL = {
+  advance: 30,
+  first: 14,
+  gap: 14,
+  stop: 14,
+  side: 7.4,
+  hoop: [12.8, 7.9],
+  wall: [19.5, 11.8],
+  perRing: 6,
+  ringGap: 18,
+}
+
+/** Which side of the corridor a milestone hangs on: 1 is right, -1 is left. */
+export const tunnelSide = (index: number) => (index % 2 === 0 ? 1 : -1)
+
+const tunnelEnd = (count: number) => (-(TUNNEL.first + TUNNEL.gap * (count - 1)) + TUNNEL.stop - 3) / TUNNEL.advance
 
 export const ROOM_RADIUS = 24
 export const SPIRAL_RADIUS = 20
@@ -43,8 +63,8 @@ export const LIMITS: Record<FormationId, Limits> = {
   wall: { yaw: [-0.95, 0.95], pitch: [-0.5, 0.5], climbPerYaw: 0, advance: 0, turn: 1, home: { yaw: 0, pitch: 0 } },
   // Here yaw is distance: dragging or scrolling flies the visitor down the tunnel.
   tunnel: {
-    yaw: [(-(TUNNEL.first + TUNNEL.gap * (milestones - 1)) + TUNNEL.stop - 8) / TUNNEL.advance, 0.25],
-    pitch: [-0.22, 0.22],
+    yaw: [tunnelEnd(milestones), 0.06],
+    pitch: [-0.16, 0.16],
     climbPerYaw: 0,
     advance: TUNNEL.advance,
     turn: 0,
@@ -76,10 +96,10 @@ function onSphere(radius: number, yaw: number, pitch: number, dim: number): Pose
   return { position: helper.position.clone(), quaternion: helper.quaternion.clone(), dim, yaw, pitch, climb: 0 }
 }
 
-/** A card on the wall of the tunnel, turned to meet the visitor flying toward it. */
-function inTunnel(angle: number, radius: number, z: number, dim: number, facing: number): Pose {
-  helper.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius * 0.78, z)
-  helper.lookAt(0, 0, z + facing)
+/** A card in the tunnel, turned toward the place on the axis where the visitor stops for it. */
+function inTunnel(x: number, y: number, z: number, dim: number): Pose {
+  helper.position.set(x, y, z)
+  helper.lookAt(0, 0, z + TUNNEL.stop)
   return { position: helper.position.clone(), quaternion: helper.quaternion.clone(), dim, yaw: (z + TUNNEL.stop) / TUNNEL.advance, pitch: 0, climb: 0 }
 }
 
@@ -106,7 +126,7 @@ export function buildSlots(written: CardInfo[], unwritten: CardInfo[]): Slot[] {
   // The far ends of the Spiral and the Tunnel depend on how many milestones there are.
   milestones = written.length
   LIMITS.spiral.yaw = [-SPIRAL_STEP * (milestones - 1) - 0.5, 0.5]
-  LIMITS.tunnel.yaw = [(-(TUNNEL.first + TUNNEL.gap * (milestones - 1)) + TUNNEL.stop - 8) / TUNNEL.advance, 0.25]
+  LIMITS.tunnel.yaw = [tunnelEnd(milestones), 0.06]
   const TAU = Math.PI * 2
 
   const scatter = (): Pose => {
@@ -135,7 +155,7 @@ export function buildSlots(written: CardInfo[], unwritten: CardInfo[]): Slot[] {
         room: onSphere(ROOM_RADIUS, -(index / written.length) * TAU, 0, 1),
         spiral: onCylinder(20, -index * SPIRAL_STEP, index * SPIRAL_RISE, 1, index * SPIRAL_RISE),
         wall: onCylinder(34, (2 - column) * 0.3, (1 - row) * 9.4, 1),
-        tunnel: inTunnel(index * 2.2 + 0.4, TUNNEL.radius, -(TUNNEL.first + index * TUNNEL.gap), 1, 15),
+        tunnel: inTunnel(tunnelSide(index) * TUNNEL.side, 0, -(TUNNEL.first + index * TUNNEL.gap), 1),
       },
     })
   })
@@ -155,6 +175,9 @@ export function buildSlots(written: CardInfo[], unwritten: CardInfo[]): Slot[] {
       const width = height * info.aspect
       const mosaicColumn = n % 12
       const mosaicRow = Math.floor(n / 12)
+      // The tunnel's wall: rings of six, each ring turned half a step from the last.
+      const ring = Math.floor(n / TUNNEL.perRing)
+      const around = (((n % TUNNEL.perRing) + 0.5 + (ring % 2) * 0.5) / TUNNEL.perRing) * TAU
       slots.push({
         info,
         width,
@@ -164,7 +187,7 @@ export function buildSlots(written: CardInfo[], unwritten: CardInfo[]): Slot[] {
           room: onSphere(ROOM_RADIUS + 1.5, ((i + (rowIndex % 2) * 0.5) / row.count) * TAU, row.pitch, 0.3),
           spiral: onCylinder(37, -n * 0.27, -14 + n * 0.82, 0.16, (n * 0.27 * SPIRAL_RISE) / SPIRAL_STEP),
           wall: onCylinder(45, (5.5 - mosaicColumn) * 0.2, (2.5 - mosaicRow) * 8.4, 0.13),
-          tunnel: inTunnel(n * 0.93, 13.5 + (n % 3) * 1.6, -(6 + n * 1.75), 0.2, 11),
+          tunnel: inTunnel(Math.cos(around) * TUNNEL.wall[0], Math.sin(around) * TUNNEL.wall[1], -(9 + ring * TUNNEL.ringGap), 0.22),
         },
       })
     }
