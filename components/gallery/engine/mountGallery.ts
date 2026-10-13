@@ -44,6 +44,8 @@ export type GalleryOptions = {
 }
 
 export type GalleryEngine = {
+  /** Brings the cards in. Called once the loading count has finished. */
+  start: () => void
   setFormation: (id: FormationId) => void
   step: (direction: 1 | -1) => void
   openFocused: () => void
@@ -238,10 +240,17 @@ export function mountGallery(options: GalleryOptions): GalleryEngine | null {
   let disposed = false
   const maxAnisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy())
 
+  // Loading and arriving are two steps: the photographs report in, the count on screen
+  // finishes, and only then do the cards come in.
+  let reported = false
   const begin = () => {
+    if (reported || disposed) return
+    reported = true
+    options.onReady()
+  }
+  const start = () => {
     if (ready || disposed) return
     ready = true
-    options.onReady()
     animate(railMaterial, { opacity: 0.4, duration: calm ? 0 : 1800, delay: calm ? 0 : 1500, ease: "out(2)" })
     meshes.forEach((mesh, index) => {
       // Milestones arrive first, in order, and the unwritten sky follows them in.
@@ -619,6 +628,7 @@ export function mountGallery(options: GalleryOptions): GalleryEngine | null {
   canvas.addEventListener("webglcontextlost", onLost)
 
   return {
+    start,
     setFormation(id) {
       if (id === formation) return
       close()

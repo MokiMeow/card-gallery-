@@ -14,6 +14,8 @@ const subscribeMotion = (onChange: () => void) => {
 }
 
 const pad = (n: number) => String(n).padStart(2, "0")
+/** The least time the loading count takes to run from 0 to 100. */
+const COUNT_MS = 1800
 
 /**
  * The gallery: one room of cards. The twelve milestones ring the visitor at eye
@@ -34,6 +36,10 @@ export function Gallery() {
     () => false
   )
   const [progress, setProgress] = useState(0)
+  const [loaded, setLoaded] = useState(false)
+  // The number on the loader. It follows the real progress but never jumps, so the count
+  // always runs through to 100 before the room opens, even when everything is cached.
+  const [shown, setShown] = useState(0)
   const [stage, setStage] = useState<"loading" | "ready" | "failed">("loading")
   const [formation, setFormation] = useState<FormationId>("room")
   const [focus, setFocus] = useState<Shown | null>(null)
@@ -56,7 +62,7 @@ export function Gallery() {
           unwritten: UNWRITTEN,
           calm: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
           onProgress: setProgress,
-          onReady: () => setStage("ready"),
+          onReady: () => setLoaded(true),
           onFocus: (info, order) => setFocus({ info, order }),
           onHover: setHovering,
           onOpen: (info, order) => setOpened(info ? { info, order } : null),
@@ -74,6 +80,34 @@ export function Gallery() {
       engine?.dispose()
     }
   }, [])
+
+  useEffect(() => {
+    if (stage !== "loading") return
+    const open = () => {
+      setStage("ready")
+      engineRef.current?.start()
+    }
+    if (calm) {
+      if (loaded) open()
+      return
+    }
+    let frame = 0
+    let last = performance.now()
+    let value = shown
+    const tick = (now: number) => {
+      // Until the photographs are in, the count waits just short of the end.
+      const target = loaded ? 1 : Math.min(progress, 0.94)
+      value = Math.min(target, value + (now - last) / COUNT_MS)
+      last = now
+      setShown(value)
+      if (value >= 1) open()
+      else frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+    // `shown` is read once to resume from where the count stood.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage, loaded, progress, calm])
 
   // Copy rises in whenever the card it describes changes.
   useEffect(() => {
@@ -115,7 +149,7 @@ export function Gallery() {
     return () => window.removeEventListener("keydown", onKey)
   }, [])
 
-  const percent = Math.round(progress * 100)
+  const percent = Math.round(shown * 100)
 
   return (
     <div ref={rootRef} className={styles.gallery} data-stage={stage} data-open={opened !== null} data-hover={hovering}>
@@ -141,7 +175,7 @@ export function Gallery() {
           <p className={styles.loaderLabel}>Mohith · Selected moments</p>
           <p className={styles.loaderNumber}>{percent}</p>
           <span className={styles.loaderBar}>
-            <span style={{ transform: `scaleX(${progress})` }} />
+            <span style={{ transform: `scaleX(${shown})` }} />
           </span>
         </div>
       )}
